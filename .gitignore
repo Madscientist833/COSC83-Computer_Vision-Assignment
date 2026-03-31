@@ -1,0 +1,31 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Notebook and test caches
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
+
+# Logs and local env files
+*.log
+.env
+
+# macOS
+.DS_Store
+
+# Assignment outputs and checkpoints
+assignment1/filter_results/
+assignment1/checkpoints/
+assignment1/results/
+assignment2/part1/results/

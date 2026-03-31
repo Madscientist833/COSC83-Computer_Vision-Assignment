@@ -14,15 +14,50 @@ def convolve2d(image: np.ndarray, kernel: np.ndarray, padding_mode: str = 'const
     Returns:
         Convolved image (same size as input)
     """
-    # TODO: Implement the 2D convolution operation
-    # 1. Check if kernel dimensions are odd
-    # 2. Handle both 2D (grayscale) and 3D (color) images
-    # 3. Calculate appropriate padding
-    # 4. Create output image
-    # 5. Apply convolution for each channel
-    # 6. Return the result in the same shape as input
-    
-    pass  # Replace with your implementation
+    if kernel.ndim != 2:
+        raise ValueError("Kernel must be a 2D array")
+
+    kh, kw = kernel.shape
+    if kh % 2 == 0 or kw % 2 == 0:
+        raise ValueError("Kernel dimensions must be odd")
+
+    pad_h = kh // 2
+    pad_w = kw // 2
+
+    pad_mode_map = {
+        'replicate': 'edge',
+        'nearest': 'edge',
+    }
+    np_pad_mode = pad_mode_map.get(padding_mode, padding_mode)
+
+    image_f = image.astype(np.float64)
+    output = np.zeros_like(image_f, dtype=np.float64)
+
+    if image_f.ndim == 2:
+        padded = np.pad(
+            image_f,
+            ((pad_h, pad_h), (pad_w, pad_w)),
+            mode=np_pad_mode
+        )
+        for i in range(image_f.shape[0]):
+            for j in range(image_f.shape[1]):
+                region = padded[i:i + kh, j:j + kw]
+                output[i, j] = np.sum(region * kernel)
+    elif image_f.ndim == 3:
+        for c in range(image_f.shape[2]):
+            padded = np.pad(
+                image_f[:, :, c],
+                ((pad_h, pad_h), (pad_w, pad_w)),
+                mode=np_pad_mode
+            )
+            for i in range(image_f.shape[0]):
+                for j in range(image_f.shape[1]):
+                    region = padded[i:i + kh, j:j + kw]
+                    output[i, j, c] = np.sum(region * kernel)
+    else:
+        raise ValueError("Input image must be 2D or 3D")
+
+    return output
 
 #5%
 def mean_filter(image: np.ndarray, kernel_size: int = 3, padding_mode: str = 'constant') -> np.ndarray:
@@ -37,11 +72,12 @@ def mean_filter(image: np.ndarray, kernel_size: int = 3, padding_mode: str = 'co
     Returns:
         Filtered image
     """
-    # TODO: Implement the mean filter
-    # 1. Create a mean filter kernel of size kernel_size × kernel_size
-    # 2. Apply the convolution using the convolve2d function
-    
-    pass  # Replace with your implementation
+    if kernel_size % 2 == 0:
+        raise ValueError("kernel_size must be odd")
+
+    kernel = np.ones((kernel_size, kernel_size), dtype=np.float64)
+    kernel /= kernel.size
+    return convolve2d(image, kernel, padding_mode=padding_mode)
 
 #5%
 def gaussian_kernel(size: int, sigma: float) -> np.ndarray:
@@ -55,13 +91,18 @@ def gaussian_kernel(size: int, sigma: float) -> np.ndarray:
     Returns:
         Gaussian kernel (normalized)
     """
-    # TODO: Implement the Gaussian kernel generation
-    # 1. Check if kernel size is odd
-    # 2. Generate grid coordinates centered at 0
-    # 3. Compute the Gaussian kernel based on the formula
-    # 4. Normalize the kernel so it sums to 1
-    
-    pass  # Replace with your implementation
+    if size % 2 == 0:
+        raise ValueError("Kernel size must be odd")
+    if sigma <= 0:
+        raise ValueError("sigma must be > 0")
+
+    half = size // 2
+    x = np.arange(-half, half + 1, dtype=np.float64)
+    xx, yy = np.meshgrid(x, x)
+
+    kernel = np.exp(-(xx ** 2 + yy ** 2) / (2 * sigma ** 2))
+    kernel /= np.sum(kernel)
+    return kernel
 
 #5%
 def gaussian_filter(image: np.ndarray, kernel_size: int = 3, sigma: float = 1.0, 
@@ -78,11 +119,8 @@ def gaussian_filter(image: np.ndarray, kernel_size: int = 3, sigma: float = 1.0,
     Returns:
         Filtered image
     """
-    # TODO: Implement the Gaussian filter
-    # 1. Generate a Gaussian kernel using the gaussian_kernel function
-    # 2. Apply convolution using the convolve2d function
-    
-    pass  # Replace with your implementation
+    kernel = gaussian_kernel(kernel_size, sigma)
+    return convolve2d(image, kernel, padding_mode=padding_mode)
 
 #5%
 def laplacian_filter(image: np.ndarray, kernel_type: str = 'standard', 
@@ -98,11 +136,22 @@ def laplacian_filter(image: np.ndarray, kernel_type: str = 'standard',
     Returns:
         Filtered image
     """
-    # TODO: Implement the Laplacian filter
-    # 1. Define the appropriate Laplacian kernel based on kernel_type
-    # 2. Apply convolution using the convolve2d function
-    
-    pass  # Replace with your implementation
+    kernels = {
+        'standard': np.array([[0, 1, 0],
+                              [1, -4, 1],
+                              [0, 1, 0]], dtype=np.float64),
+        'diagonal': np.array([[1, 1, 1],
+                              [1, -8, 1],
+                              [1, 1, 1]], dtype=np.float64),
+    }
+
+    if kernel_type not in kernels:
+        raise ValueError("kernel_type must be 'standard' or 'diagonal'")
+
+    if image.ndim == 3:
+        image = np.mean(image, axis=2)
+
+    return convolve2d(image, kernels[kernel_type], padding_mode=padding_mode)
 
 #10%
 def sobel_filter(image: np.ndarray, direction: str = 'both', kernel_size: int = 3, 
@@ -120,13 +169,46 @@ def sobel_filter(image: np.ndarray, direction: str = 'both', kernel_size: int = 
         If direction is 'both', returns (gradient_magnitude, gradient_direction)
         Otherwise, returns the filtered image
     """
-    # TODO: Implement the Sobel filter
-    # 1. Define Sobel kernels in x and y directions based on kernel_size
-    # 2. Apply convolution based on the specified direction
-    # 3. For 'both' direction, compute gradient magnitude and direction
-    # 4. Return appropriate output based on direction parameter
-    
-    pass  # Replace with your implementation
+    if image.ndim == 3:
+        image = np.mean(image, axis=2)
+
+    if kernel_size == 3:
+        kx = np.array([[-1, 0, 1],
+                       [-2, 0, 2],
+                       [-1, 0, 1]], dtype=np.float64)
+        ky = np.array([[-1, -2, -1],
+                       [0, 0, 0],
+                       [1, 2, 1]], dtype=np.float64)
+    elif kernel_size == 5:
+        kx = np.array([
+            [-1, -2, 0, 2, 1],
+            [-4, -8, 0, 8, 4],
+            [-6, -12, 0, 12, 6],
+            [-4, -8, 0, 8, 4],
+            [-1, -2, 0, 2, 1],
+        ], dtype=np.float64)
+        ky = np.array([
+            [-1, -4, -6, -4, -1],
+            [-2, -8, -12, -8, -2],
+            [0, 0, 0, 0, 0],
+            [2, 8, 12, 8, 2],
+            [1, 4, 6, 4, 1],
+        ], dtype=np.float64)
+    else:
+        raise ValueError("kernel_size must be 3 or 5")
+
+    if direction == 'x':
+        return convolve2d(image, kx, padding_mode=padding_mode)
+    if direction == 'y':
+        return convolve2d(image, ky, padding_mode=padding_mode)
+    if direction != 'both':
+        raise ValueError("direction must be 'x', 'y', or 'both'")
+
+    gx = convolve2d(image, kx, padding_mode=padding_mode)
+    gy = convolve2d(image, ky, padding_mode=padding_mode)
+    magnitude = np.sqrt(gx ** 2 + gy ** 2)
+    angle = np.arctan2(gy, gx)
+    return magnitude, angle
 
 # These helper functions are provided for you
 

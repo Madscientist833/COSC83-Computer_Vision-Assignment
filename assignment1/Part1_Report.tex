@@ -1,0 +1,255 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+\setlist[itemize]{nosep,leftmargin=1.5em}
+\setlength{\textfloatsep}{8pt plus 1pt minus 2pt}
+\setlength{\floatsep}{8pt plus 1pt minus 2pt}
+\setlength{\intextsep}{8pt plus 1pt minus 2pt}
+\captionsetup{skip=4pt,font=small}
+
+\title{Part 1 Report: Traditional Filters Implementation}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+This report summarizes the testing and evaluation for Part 1 of the assignment: implementing classical image filtering methods from scratch.
+
+Implemented components:
+\begin{itemize}
+    \item 2D convolution
+    \item Mean filter
+    \item Gaussian filter and Gaussian kernel generation
+    \item Laplacian filter (standard and diagonal variants)
+    \item Sobel filter (x, y, and magnitude/direction)
+    \item Bonus: Canny edge detector
+\end{itemize}
+
+\section{Methodology}
+The implementation was tested on four required image categories:
+\begin{itemize}
+    \item Synthetic image with geometric structures: \texttt{example\_images/Sythetic.png}
+    \item Natural image with textures: \texttt{example\_images/natural.jpg}
+    \item Portrait/face image: \texttt{example\_images/Face.png}
+    \item Noisy image (Gaussian + salt-and-pepper): \texttt{example\_images/noise.jpg}
+\end{itemize}
+
+For each image, the following were generated:
+\begin{itemize}
+    \item Basic filter visualization
+    \item Comparison with OpenCV for smoothing and edge operators
+    \item Canny comparison grid (bonus)
+\end{itemize}
+
+Outputs were saved in \texttt{filter\_results/}.
+
+\section{Testing Results}
+
+\subsection{Synthetic Image (Geometric)}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/Sythetic_basic_filters.png}
+        \caption{Basic filtering results.}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/Sythetic_canny_comparison.png}
+        \caption{Canny comparison (ours vs OpenCV).}
+    \end{subfigure}
+    \vspace{4pt}
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/Sythetic_opencv_comparison_smoothing.png}
+        \caption{Smoothing comparison with OpenCV.}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/Sythetic_opencv_comparison_edges.png}
+        \caption{Edge operator comparison with OpenCV.}
+    \end{subfigure}
+    \caption{Synthetic image results.}
+\end{figure}
+
+Observations:
+\begin{itemize}
+    \item Edges are sharp and highly structured, so Sobel and Laplacian clearly highlight boundaries.
+    \item Mean/Gaussian smoothing noticeably softens checker-like transitions.
+    \item Our outputs and OpenCV outputs are visually very close.
+\end{itemize}
+
+\subsection{Natural Image (Texture-Rich)}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/natural_basic_filters.png}
+        \caption{Basic filtering results.}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/natural_canny_comparison.png}
+        \caption{Canny comparison (ours vs OpenCV).}
+    \end{subfigure}
+    \vspace{4pt}
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/natural_opencv_comparison_smoothing.png}
+        \caption{Smoothing comparison with OpenCV.}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/natural_opencv_comparison_edges.png}
+        \caption{Edge operator comparison with OpenCV.}
+    \end{subfigure}
+    \caption{Natural image results.}
+\end{figure}
+
+Observations:
+\begin{itemize}
+    \item Gaussian filtering preserves large structures while suppressing high-frequency texture.
+    \item Sobel magnitude captures road, object contours, and dominant texture gradients.
+    \item Canny with larger sigma produces cleaner but less detailed edge maps.
+\end{itemize}
+
+\subsection{Portrait/Face Image}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/Face_basic_filters.png}
+        \caption{Basic filtering results.}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/Face_canny_comparison.png}
+        \caption{Canny comparison (ours vs OpenCV).}
+    \end{subfigure}
+    \vspace{4pt}
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/Face_opencv_comparison_smoothing.png}
+        \caption{Smoothing comparison with OpenCV.}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/Face_opencv_comparison_edges.png}
+        \caption{Edge operator comparison with OpenCV.}
+    \end{subfigure}
+    \caption{Face image results.}
+\end{figure}
+
+Observations:
+\begin{itemize}
+    \item Facial boundary and clothing folds are preserved by Sobel/Canny.
+    \item Gaussian filter reduces skin-level noise more naturally than mean filter.
+    \item Laplacian diagonal kernel shows slightly stronger response around fine details.
+\end{itemize}
+
+\subsection{Noisy Image}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/noise_basic_filters.png}
+        \caption{Basic filtering results.}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/noise_canny_comparison.png}
+        \caption{Canny comparison (ours vs OpenCV).}
+    \end{subfigure}
+    \vspace{4pt}
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/noise_opencv_comparison_smoothing.png}
+        \caption{Smoothing comparison with OpenCV.}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{filter_results/noise_opencv_comparison_edges.png}
+        \caption{Edge operator comparison with OpenCV.}
+    \end{subfigure}
+    \caption{Noisy image results.}
+\end{figure}
+
+Observations:
+\begin{itemize}
+    \item Both mean and Gaussian reduce noise.
+    \item Gaussian denoising preserves edges slightly better than mean filtering.
+    \item In very noisy regions, Canny thresholding requires careful tuning to avoid fragmented edges.
+\end{itemize}
+
+\section{Parameter Analysis}
+\subsection{Kernel Size and Sigma}
+\begin{itemize}
+    \item Larger kernel size in mean/Gaussian gives stronger smoothing and more detail loss.
+    \item Larger sigma in Gaussian and Canny pre-smoothing suppresses texture/noise but can remove weak edges.
+\end{itemize}
+
+\subsection{Sobel Directionality}
+\begin{itemize}
+    \item Sobel-X emphasizes vertical boundaries.
+    \item Sobel-Y emphasizes horizontal boundaries.
+    \item Magnitude combines both and is more suitable for generic edge intensity visualization.
+\end{itemize}
+
+\subsection{Canny Thresholds}
+From the Canny comparison grids:
+\begin{itemize}
+    \item Lower thresholds produce denser edges but include more noise.
+    \item Higher thresholds produce cleaner maps but may miss weak contours.
+\end{itemize}
+
+\section{Border Handling Analysis}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\linewidth]{filter_results/padding_mean_comparison.png}
+    \caption{Mean filter border handling comparison: constant, reflect, and replicate padding.}
+\end{figure}
+
+Interpretation:
+\begin{itemize}
+    \item Constant padding tends to darken borders and may introduce artificial edge responses near boundaries.
+    \item Reflect padding preserves continuity and usually gives the most natural border behavior.
+    \item Replicate padding keeps border intensity constant and often performs similarly to reflect for smooth regions.
+\end{itemize}
+
+\section{Noisy vs Clean Analysis}
+\begin{itemize}
+    \item Both mean and Gaussian decrease intensity variation (noise suppression effect).
+    \item Gaussian retains structure slightly better visually while still reducing random noise.
+\end{itemize}
+
+\section{Conclusion}
+Part 1 implementation is correct and complete with required filters and bonus Canny.
+
+Overall conclusions:
+\begin{itemize}
+    \item Functional correctness is validated by visual agreement with OpenCV across multiple image categories.
+    \item Parameter settings strongly control smoothing-strength and edge sensitivity.
+    \item Border strategy affects edge artifacts near image boundaries; reflect/replicate are typically preferable to constant padding.
+    \item For noisy inputs, Gaussian filtering provides a better blur-detail trade-off than mean filtering.
+\end{itemize}
+
+\end{document}

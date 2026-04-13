@@ -9,11 +9,11 @@ class ResidualBlock(nn.Module):
     def __init__(self, channels):
         super(ResidualBlock, self).__init__()
         # TODO: Implement the residual block constructor
-        # You need to create:
-        # 1. Two convolutional layers with kernel size 3, padding 1, and the same number of channels
-        # 2. Two batch normalization layers
-        # 3. ReLU activation
-        pass
+        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)
+        self.bn1   = nn.BatchNorm2d(channels)
+        self.relu  = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1)   
+        self.bn2   = nn.BatchNorm2d(channels)
         
     def forward(self, x):
         # TODO: Implement the forward pass of the residual block
@@ -22,7 +22,12 @@ class ResidualBlock(nn.Module):
         # 3. Pass the result through the second conv -> batch norm sequence
         # 4. Add the residual to implement the skip connection
         # 5. Apply ReLU and return the result
-        pass
+        residual = x 
+        out = self.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        out = out + residual
+        out = self.relu(out)
+        return out
 
 #5%
 class UpscaleBlock(nn.Module):
@@ -34,14 +39,20 @@ class UpscaleBlock(nn.Module):
         # 2. Create a convolutional layer with kernel size 3 and padding 1
         # 3. Create a pixel shuffle layer with the given scale factor
         # 4. Create a ReLU activation
-        pass
+        out_channels = in_channels * (scale_factor ** 2)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
+        self.pixel_shuffle = nn.PixelShuffle(scale_factor)
+        self.relu = nn.ReLU(inplace=True)
         
     def forward(self, x):
         # TODO: Implement the forward pass of the upscale block
         # 1. Apply the convolutional layer
         # 2. Apply the pixel shuffle operation
         # 3. Apply ReLU and return the result
-        pass
+        out = self.conv(x)
+        out = self.pixel_shuffle(out)
+        out = self.relu(out)
+        return out
 
 #10%
 class SuperResolutionCNN(nn.Module):
@@ -68,14 +79,43 @@ class SuperResolutionCNN(nn.Module):
         #    - Raise an error for other scale factors
         # 5. Create a final convolution layer with kernel size 9, padding 4
         # 6. Initialize the weights using the _initialize_weights method
-        pass
+        
+        self.initial_conv = nn.Sequential(
+            nn.Conv2d(num_channels, num_features, kernel_size=9, padding=4),
+            nn.ReLU(inplace=True)
+        )
+        self.residual_blocks = nn.Sequential(
+            *[ResidualBlock(num_features) for _ in range(num_blocks)]
+        )
+        self.mid_conv = nn.Sequential(
+            nn.Conv2d(num_features, num_features, kernel_size=3, padding=1),
+            nn.BatchNorm2d(num_features)
+        )
+        if scale_factor in [2, 4, 8]:
+            upscaling_blocks = []
+            for _ in range(int(math.log2(scale_factor))):
+                upscaling_blocks.append(UpscaleBlock(num_features, 2))
+            self.upscaling = nn.Sequential(*upscaling_blocks)
+        elif scale_factor == 3:
+            self.upscaling = UpscaleBlock(num_features, 3)
+        else:
+            raise ValueError("Unsupported scale factor")
+        self.final_conv = nn.Conv2d(num_features, num_channels, kernel_size=9, padding=4)
+        self._initialize_weights()
+
         
     def _initialize_weights(self):
         # TODO: Implement weight initialization
         # For each module in the model:
         # 1. For convolutional layers, use Kaiming normal initialization for weights and zero initialization for biases
         # 2. For batch normalization layers, use ones for weights and zeros for biases
-        pass
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight)
+                nn.init.zeros_(m.bias)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.ones_(m.weight)
+                nn.init.zeros_(m.bias)
         
     def forward(self, x):
         # TODO: Implement the forward pass of the Super Resolution CNN
@@ -85,4 +125,10 @@ class SuperResolutionCNN(nn.Module):
         # 4. Add the initial features (global residual learning)
         # 5. Apply the upscaling layers
         # 6. Apply the final convolution and return the result
-        pass
+        initial_features = self.initial_conv(x)
+        residual = self.residual_blocks(initial_features)
+        mid = self.mid_conv(residual)
+        out = initial_features + mid
+        out = self.upscaling(out)
+        out = self.final_conv(out)
+        return out

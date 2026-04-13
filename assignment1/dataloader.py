@@ -80,8 +80,53 @@ class SuperResolutionDataset(Dataset):
         # Use the helper methods (_random_crop, _augment, _downsample) that are already implemented
         # Make sure to handle all edge cases and errors
         
-        pass  # Replace with your implementation
-    
+        filename = self.image_files[idx]
+        hr_path = os.path.join(self.hr_dir, filename)
+        try:
+            # Load HR image
+            hr_img = Image.open(hr_path).convert('RGB')
+            
+            # Resize HR image to fixed size (if needed)
+            if hr_img.size != (self.hr_size, self.hr_size):
+                hr_img = hr_img.resize((self.hr_size, self.hr_size), Image.BICUBIC)
+            
+            # Random crop a patch from HR image
+            hr_patch = self._random_crop(hr_img)
+            
+            # Data augmentation
+            if self.augment:
+                hr_patch = self._augment(hr_patch)
+            
+            # Randomly select scale factor and downsampling method
+            scale_factor = random.choice(self.scale_factors)
+            method = random.choice(self.downsample_methods)
+            
+            # Create LR patch by downsampling
+            lr_patch = self._downsample(hr_patch, scale_factor, method)
+            
+            # Convert to tensors
+            hr_tensor = self.to_tensor(hr_patch)
+            lr_tensor = self.to_tensor(lr_patch)
+            
+            return {
+                'lr': lr_tensor,
+                'hr': hr_tensor,
+                'scale_factor': scale_factor,
+                'method': method,
+                'filename': filename,
+                'error': ''
+            }
+        except Exception as e:
+            print(f"Error processing {filename}: {str(e)}")
+            # Return a valid sample with error message
+            return {
+                'lr': torch.zeros(3, self.lr_size, self.lr_size),  # Placeholder LR tensor
+                'hr': torch.zeros(3, self.patch_size, self.patch_size),  # Placeholder HR tensor
+                'scale_factor': -1,
+                'method': 'error',
+                'filename': filename,
+                'error': str(e)
+            }   
     def _random_crop(self, img):
         """Safely crop a patch from the image"""
         width, height = img.size

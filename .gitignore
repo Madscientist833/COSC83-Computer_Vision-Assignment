@@ -29,3 +29,5 @@ assignment1/filter_results/
 assignment1/checkpoints/
 assignment1/results/
 assignment2/part1/results/
+*.pdf
+*.zip

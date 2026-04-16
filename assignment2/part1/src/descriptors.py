@@ -23,16 +23,25 @@ class FeatureDescriptor:
         # HINT: Use cv2.SIFT_create() or cv2.xfeatures2d.SURF_create()
         
         if self.descriptor_type == 'SIFT':
-            # Extract parameters from self.params or use default values
-            
-            # Your implementation here
-            self.descriptor = None
+            nfeatures = self.params.get('nfeatures', 0)
+            nOctaveLayers = self.params.get('nOctaveLayers', 3)
+            contrastThreshold = self.params.get('contrastThreshold', 0.04)
+            edgeThreshold = self.params.get('edgeThreshold', 10)
+            sigma = self.params.get('sigma', 1.6)
+            self.descriptor = cv2.SIFT_create(
+                nfeatures=nfeatures,
+                nOctaveLayers=nOctaveLayers,
+                contrastThreshold=contrastThreshold,
+                edgeThreshold=edgeThreshold,
+                sigma=sigma
+            )
             
         elif self.descriptor_type == 'SURF':
-            # Extract parameters from self.params or use default values
-            
-            # Your implementation here
-            self.descriptor = None
+            hessianThreshold = self.params.get('hessianThreshold', 400)
+            try:
+                self.descriptor = cv2.xfeatures2d.SURF_create(hessianThreshold=hessianThreshold)
+            except AttributeError:
+                raise ValueError("SURF is not available in this OpenCV build. Use SIFT instead.")
             
         else:
             raise ValueError(f"Unsupported descriptor type: {self.descriptor_type}")
@@ -52,11 +61,7 @@ class FeatureDescriptor:
         if len(image.shape) > 2:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
-        # TODO: Use the descriptor to detect keypoints and compute descriptors
-        # HINT: Use the detectAndCompute method
-        
-        # Your implementation here
-        keypoints, descriptors = None, None
+        keypoints, descriptors = self.descriptor.detectAndCompute(image, mask)
         
         return keypoints, descriptors
     
@@ -75,11 +80,7 @@ class FeatureDescriptor:
         if len(image.shape) > 2:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
-        # TODO: Compute descriptors for the provided keypoints
-        # HINT: Use the compute method
-        
-        # Your implementation here
-        keypoints, descriptors = None, None
+        keypoints, descriptors = self.descriptor.compute(image, keypoints)
         
         return keypoints, descriptors
 
@@ -104,10 +105,14 @@ class HarrisKeypointExtractor:
         Returns:
             list: List of cv2.KeyPoint objects
         """
-        # TODO: Detect Harris corners and convert them to cv2.KeyPoint objects
-        # HINT: Use the harris_detector to find corners, then convert coordinates to KeyPoints
+        # Detect Harris corners and convert to cv2.KeyPoint objects
+        corners, response = self.harris_detector.detect_corners(image)
+        corner_coords = self.harris_detector.get_corner_coordinates(corners)
         
-        # Your implementation here
-        keypoints = []
+        keypoints = [cv2.KeyPoint(float(x), float(y), 20.0) for x, y in corner_coords]
+        
+        if mask is not None and len(keypoints) > 0:
+            keypoints = [kp for kp in keypoints
+                         if mask[int(kp.pt[1]), int(kp.pt[0])] != 0]
         
         return keypoints

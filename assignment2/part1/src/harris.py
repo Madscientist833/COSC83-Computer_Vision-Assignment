@@ -25,15 +25,12 @@ class HarrisDetector:
         Returns:
             tuple: (dx, dy) gradient images
         """
-        # TODO: Implement gradient computation using Sobel operators
-        # HINT: Use cv2.Sobel() for gradient computation
-        
         # Convert to float for better precision
-        image = image.astype(np.float32)
+        image = image.astype(np.float64)
         
-        # Your implementation here
-        dx = None
-        dy = None
+        # Compute gradients using Sobel operators
+        dx = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
+        dy = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
         
         return dx, dy
     
@@ -48,16 +45,17 @@ class HarrisDetector:
         Returns:
             tuple: (Ixx, Ixy, Iyy) structure tensor components
         """
-        # TODO: Implement structure tensor computation
-        # HINT: Apply Gaussian smoothing to the products of derivatives
-        
         # Compute products of derivatives
-        Ixx = None
-        Ixy = None
-        Iyy = None
+        Ixx = dx * dx
+        Ixy = dx * dy
+        Iyy = dy * dy
         
         # Apply Gaussian smoothing
-        # Your implementation here
+        ksize = (self.window_size, self.window_size)
+        sigma = 0.5 * self.window_size
+        Ixx = cv2.GaussianBlur(Ixx, ksize, sigma)
+        Ixy = cv2.GaussianBlur(Ixy, ksize, sigma)
+        Iyy = cv2.GaussianBlur(Iyy, ksize, sigma)
         
         return Ixx, Ixy, Iyy
     
@@ -73,12 +71,10 @@ class HarrisDetector:
         Returns:
             numpy.ndarray: Corner response image
         """
-        # TODO: Implement Harris corner response computation
-        # HINT: R = det(M) - k * trace(M)^2
-        # where M = [[Ixx, Ixy], [Ixy, Iyy]]
-        
-        # Your implementation here
-        response = None
+        # R = det(M) - k * trace(M)^2
+        det = Ixx * Iyy - Ixy * Ixy
+        trace = Ixx + Iyy
+        response = det - self.k * (trace ** 2)
         
         return response
     
@@ -93,9 +89,6 @@ class HarrisDetector:
         Returns:
             numpy.ndarray: Binary image with corners after suppression
         """
-        # TODO: Implement non-maximum suppression
-        # HINT: For each pixel, check if it's the maximum in its neighborhood
-        
         # Normalize response to [0, 1]
         if response.max() > 0:
             response_normalized = response / response.max()
@@ -105,8 +98,10 @@ class HarrisDetector:
         # Apply threshold
         corners = response_normalized > self.threshold
         
-        # Your implementation of non-maximum suppression here
-        result = np.zeros_like(corners, dtype=bool)
+        # Non-maximum suppression using dilation to find local maxima
+        kernel = np.ones((neighborhood_size, neighborhood_size), dtype=np.float64)
+        local_max = cv2.dilate(response_normalized, kernel)
+        result = corners & (response_normalized == local_max)
         
         return result
     
